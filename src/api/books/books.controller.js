@@ -1,4 +1,5 @@
-const Book = require('models/book')
+const Book = require('models/book');
+const { isValidObjectId } = require('mongoose');
 
 exports.get = async (ctx) => {
   const { id } = ctx.params;
@@ -39,7 +40,7 @@ exports.list = async (ctx) => {
   try {
     if (count && isDesc === 'Desc') {
       console.log('first');
-      books = await Book.find().exeC()
+      books = await Book.find().exec()
       .sort({ _id: -1 })
       .limit(Number(count))
       .exec();
@@ -112,10 +113,50 @@ exports.delete = async (ctx) => {
   }
 };
 
-exports.replace = (ctx) => {
-  ctx.body = 'replaced';
+exports.replace = async (ctx) => {
+  const { id } = ctx.params;
+
+  let book;
+
+  try {
+    book = await Book.findByIdAndUpdate(id, ctx.request.body, {
+      upsert: true,
+      new: true
+    })
+  } catch (e) {
+    return ctx.throw(500, e);
+  }
+
+  ctx.body = {
+    message: 'SuccessFully updated!',
+    data: book
+  };
 };
 
-exports.update = (ctx) => {
-  ctx.body = 'updated';
+exports.update = async (ctx) => {
+  const { id } = ctx.params;
+
+  if (!isValidObjectId(id)) {
+    ctx.status = 400;
+    ctx.body = {
+      message: '유효하지 않은 ID',
+      data: null
+    };
+    return;
+  }
+
+  let book;
+
+  try {
+    book = await Book.findByIdAndUpdate(id, ctx.request.body, {
+      new: true
+    });
+  } catch (e) {
+    return ctx.throw(500, e);
+  }
+
+  ctx.body = {
+    message: 'Successfully modified!',
+    data: book
+  };
 };
